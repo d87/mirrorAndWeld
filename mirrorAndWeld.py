@@ -74,19 +74,15 @@ def main(plane=None, deselect=False):
         verts = lx.eval('query layerservice verts ? visible')
     else:
         verts = lx.eval('query layerservice verts ? all')
-
-    lx.out("verts", verts)
+        
 
     lx.eval('select.type vertex')
 
     for vertIndex in verts:
         pos = lx.eval('query layerservice vert.pos ? %s' % vertIndex )
-        lx.out("pos", pos)
         # x,y,z = pos
         if match(pos):
-            lx.out("selecting", vertIndex)
             lx.eval('select.element %s vert add %s' % (layer, vertIndex))
-            # lx.out(pos)
 
 
     selectedVerticesN = lx.eval('query layerservice vert.N ? selected')
