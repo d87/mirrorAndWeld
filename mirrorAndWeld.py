@@ -16,7 +16,7 @@ def make_matcher(plane):
     elif plane == "-x":
         return lambda pos: pos[2] > 0.00000000001
 
-def main(plane=None):
+def main(plane=None, deselect=False):
     symmetry_state = lx.eval('select.symmetryState ?')
 
     if plane == None:
@@ -36,16 +36,23 @@ def main(plane=None):
 
     lx.eval('select.symmetryState none') # disable symmetry
 
-    # deselect everything
-    lx.eval('select.drop vertex')
-    lx.eval('select.drop edge')
-    lx.eval('select.drop polygon')
+    if deselect:
+        lx.eval('select.drop vertex')
+        lx.eval('select.drop edge')
+        lx.eval('select.drop polygon')
 
 
     layer = lx.eval('query layerservice layer.index ? main')
 
 
-    # lx.eval('select.type polygon')
+
+    isSelectionMode = lx.eval('query layerservice polys ? selected') != None
+    # lx.out("isSelection", isSelection)
+    if isSelectionMode:
+        lx.eval("unhide")
+        lx.eval("select.polygonConnect m3d false")
+        lx.eval("hide.sel")
+        lx.eval("hide.invert")
 
     axis, sx, sy, sz, match, mirror_axis = params
 
@@ -63,36 +70,38 @@ def main(plane=None):
     lx.eval("tool.set poly.knife off")
 
 
-    verts = lx.eval('query layerservice verts ? all')
-    # polys = lx.eval('query layerservice polys ? all')
+    if isSelectionMode:
+        verts = lx.eval('query layerservice verts ? visible')
+    else:
+        verts = lx.eval('query layerservice verts ? all')
+
+    lx.out("verts", verts)
 
     lx.eval('select.type vertex')
 
     for vertIndex in verts:
         pos = lx.eval('query layerservice vert.pos ? %s' % vertIndex )
+        lx.out("pos", pos)
         # x,y,z = pos
         if match(pos):
+            lx.out("selecting", vertIndex)
             lx.eval('select.element %s vert add %s' % (layer, vertIndex))
             # lx.out(pos)
-            
-
-    # for polyIndex in polys:
-    #     pos = lx.eval('query layerservice poly.pos ? %s' % polyIndex )
-    #     x,y,z = pos
-    #     lx.out("data", x,y,z)
-    #     if x < 0:
-    #         lx.eval('select.element %s polygon add %s' % (layer, polyIndex))
-
-    # lx.eval('select.convert polygon')
 
 
-    lx.eval('delete')
+    selectedVerticesN = lx.eval('query layerservice vert.N ? selected')
+    # lx.out("selected Verts", selectedVerticesN)
+    if selectedVerticesN > 0:
+        lx.eval('delete')
 
     lx.eval('tool.set *.mirror on')
     lx.eval('tool.attr gen.mirror axis %d' % mirror_axis) # 0 = x; 1 = y; 2 = z
     lx.eval('tool.attr gen.mirror cenX 0.0')
     lx.eval('tool.apply')
     lx.eval('tool.set *.mirror off')
+
+    if isSelectionMode:
+        lx.eval('unhide')
 
     lx.eval('select.symmetryState %s' % symmetry_state) # restore symmetry
 
